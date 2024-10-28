@@ -15,7 +15,6 @@ The environment can be set up similarly to the `cpd_environment` configuration f
 To run the model, simply use:
 ```bash
 python run.py
-}
 ```
 
 ## Citation
