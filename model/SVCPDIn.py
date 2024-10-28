@@ -41,10 +41,6 @@ class HAWKES:
         self.T_phi = [1.0, 2.0, 4.0, 6.0]
         self.beta_a = np.zeros([self.M,self.B])
         self.beta_b = np.zeros([self.M,self.B])
-        # self.beta_a = [[1,2],[3,1]] Wanna+beta3
-        # self.beta_b = [[2,3],[4,2]]
-        # self.beta_a = [[1,2],[5,3]]
-        # self.beta_b = [[2,4],[6,4]]
         self.beta_a = [[1,2],[5,2]]
         self.beta_b = [[2,4],[6,4]]
         self.DoF = 2 + self.M * self.B
@@ -54,9 +50,7 @@ class HAWKES:
         for i in range(self.M):
             for j in range(self.B):
                 self.w_idx[i * self.B + j]=int(i * self.B + j + 2)
-        
-        # self.gamma_idx = 1
-        # self.delta_idx = 2
+
         
         self.hyperMean = np.zeros( (self.DoF, 1) )
         self.hyperVar  = 10 * np.ones( (self.DoF, 1) )
@@ -107,23 +101,17 @@ class HAWKES:
             for i in range(self.M):
                 for j in range(self.B):
                     w.append(thetas1[self.w_idx[i * self.B + j],:])
-
-        #对dt求积分
             u = mus 
             dh = 0
             for i in range(self.M):
                 for j in range(self.B):
-                    # tmp += w[i * self.B + j] * si.quad(lambda x: beta.pdf(x,self.beta_a[i][j],self.beta_b[i][j], scale = self.T_phi), \
-                    #     self.tt[np.newaxis, :self.m-1][0][k], self.tt[1:, np.newaxis][-1][0])[0]
                     u += w[i * self.B + j] * np.sum(beta.pdf(self.dtt[-1,:], a = self.beta_a[i][j], \
                             b = self.beta_b[i][j], scale = self.T_phi[i * self.B + j]))
                     dh += w[i * self.B + j] * np.sum(derivative(lambda x:beta.pdf(x, \
                             a = self.beta_a[i][j],b = self.beta_b[i][j], scale = self.T_phi[i * self.B + j]), \
                             x0=self.dtt[-1,:], dx = 0.1, n=1))
-            # h = mus + u - np.arange(self.m - 2,-1,-1)[:,np.newaxis]
             h = mus + u
             tmp = np.zeros(h.size)
-            # print("h",h,"dh",dh,"lamb",lamb)
             for i in range(h.size):
                 if dh[i] == 0:
                     dh[i] = -1e8
@@ -131,12 +119,6 @@ class HAWKES:
                     tmp[i] = lamb[i] * h[i]/dh[i]
                 else:
                     tmp[i] = lamb[i] * np.log(1 + np.exp(h[i])) / dh[i]
-                        # print(lamb.size, h.size, dh.size)
-            # print(lamb, h, dh)
-            # if all(h>10) or any(h>20):
-            #     tmp = lamb * h/dh
-            # else:
-            #     tmp = lamb * np.log(1 + np.exp(h)) / dh
 
 
         elif self.m == 1:
@@ -168,7 +150,6 @@ class HAWKES:
         lamb = thetas2[self.lamb_idx,:]
         mus = thetas1[self.mu_idx,:]
         w = []
-        # print(self.w_idx)
         for i in range(self.M):
             for j in range(self.B):
                 w.append(thetas1[self.w_idx[i * self.B + j],:])
@@ -183,8 +164,6 @@ class HAWKES:
             dh = 0
             for i in range(self.M):
                 for j in range(self.B):
-                    # tmp += w[i * self.B + j] * si.quad(lambda x: beta.pdf(x,self.beta_a[i][j],self.beta_b[i][j], scale = self.T_phi), \
-                    #     self.tt[np.newaxis, :self.m-1][0][k], self.tt[1:, np.newaxis][-1][0])[0]
                     u += w[i * self.B + j] * np.sum(beta.pdf(self.dtt[-1,:], a = self.beta_a[i][j], \
                             b = self.beta_b[i][j], scale = self.T_phi[i * self.B + j]))
                     dh += w[i * self.B + j] * np.sum(derivative(lambda x:beta.pdf(x, \
@@ -192,7 +171,6 @@ class HAWKES:
                             x0=self.dtt[-1,:], dx = 0.1, n=1))
                     Phi[i * self.B + j] = np.sum(beta.pdf(self.dtt[-1,:], a = self.beta_a[i][j], b = self.beta_b[i][j], \
                         scale = self.T_phi[i * self.B + j]))
-            # h = mus + u - np.arange(self.m - 2,-1,-1)[:,np.newaxis]
             h = mus + u
 
             gllams = np.zeros( (self.DoF, self.m, nSamples ) )
@@ -204,7 +182,6 @@ class HAWKES:
                         gllams[self.mu_idx,:,:][j][i] = 0
                     else:
                         gllams[self.mu_idx,:,:][j][i]  = mus[i] / lams[j][i] * np.exp(-h[i])/(1 + np.exp(-h[i]))**2
-            # gllams[self.mu_idx,:,:]  = mus / lams * np.exp(-h)/(1 + np.exp(-h))**2
             
             for i in range(self.M):
                 for j in range(self.B):
@@ -214,9 +191,7 @@ class HAWKES:
                                 gllams[self.w_idx[i * self.B + j],:,:][m][k] = 0
                             else:
                                 gllams[self.w_idx[i * self.B + j],:,:][m][k] = w[i * self.B + j][k] * np.exp(-h[k])/(1 + np.exp(-h[k]))**2 \
-                                * np.vstack((np.zeros(nSamples), Phi[i * self.B + j] / lams[1:]) )[m][k]
-                    # gllams[self.w_idx[i * self.B + j],:,:] = w[i * self.B + j] * np.exp(-h)/(1 + np.exp(-h))**2 * np.vstack((np.zeros(nSamples), Phi[i * self.B + j] / lams[1:]) )
-                    
+                                * np.vstack((np.zeros(nSamples), Phi[i * self.B + j] / lams[1:]) )[m][k] 
             return gllams
         elif self.m == 1:
             return np.vstack( (np.ones(nSamples), np.zeros( (self.DoF-1, nSamples) ) ) )
@@ -244,8 +219,6 @@ class HAWKES:
             f = np.zeros(self.M * self.B)
             for i in range(self.M):
                 for j in range(self.B):
-                    # tmp += w[i * self.B + j] * si.quad(lambda x: beta.pdf(x,self.beta_a[i][j],self.beta_b[i][j], scale = self.T_phi), \
-                    #     self.tt[np.newaxis, :self.m-1][0][k], self.tt[1:, np.newaxis][-1][0])[0]
                     h += w[i * self.B + j] * np.sum(beta.pdf(self.dtt[-1,:], a = self.beta_a[i][j], \
                             b = self.beta_b[i][j], scale = self.T_phi[i * self.B + j]))
                     dh += w[i * self.B + j] * np.sum(derivative(lambda x:beta.pdf(x, \
@@ -257,12 +230,6 @@ class HAWKES:
                             a = self.beta_a[i][j],b = self.beta_b[i][j], scale = self.T_phi[i * self.B + j]), \
                             x0=self.dtt[-1,:], dx = 0.1, n=1))
 
-            # for i in range(self.M):
-            #     for j in range(self.B):
-            #         for k in range(self.m - 1):
-            #             f[i * self.B + j] = si.quad(lambda x: beta.pdf(x,self.beta_a[i][j],self.beta_b[i][j], scale = self.T_phi), \
-            #                 self.tt[np.newaxis, :self.m-1][0][k], self.tt[1:, np.newaxis][-1][0])[0]
-
             gcomp = np.zeros( (self.DoF, nSamples) )
             for i in range(h.size):
                 # dh[i] = np.minimum(dh[i], 1e-8)
@@ -272,18 +239,8 @@ class HAWKES:
                     gcomp[self.lamb_idx,:][i] = lamb[i] * h[i] / dh[i]
                 else:
                     gcomp[self.lamb_idx,:][i] = lamb[i] * np.log(1 + np.exp(h[i])) / dh[i]
-            # print("dh", np.min(dh), np.min(abs(dh)))
 
             gcomp[self.mu_idx,:] = mus * lamb * expit(h) / dh
-            # for i in range(self.M):
-            #     for j in range(self.B):
-            #         print(w[i * self.B + j].size,f[i * self.B + j].size,h.size,lamb.size,dh.size,expmdeltasdtt[i * self.B + j].size)
-            #         if all(h>10) or any(h>20):
-            #             gcomp[self.w_idx[i * self.B + j],:] = lamb * w[i * self.B + j] *  (h / (-f[i * self.B + j] \
-            #                     * w[i * self.B + j]**2) + expit(h) * expmdeltasdtt[i * self.B + j] / dh)
-            #         else:
-            #             gcomp[self.w_idx[i * self.B + j],:] = lamb * w[i * self.B + j] *  (np.log(1 + np.exp(h)) \
-            #                  / (-f[i * self.B + j] * w[i * self.B + j]**2) + expit(h) * expmdeltasdtt[i * self.B + j] / dh)
             for i in range(self.M):
                 for j in range(self.B):
                     for k in range(h.size):
@@ -301,8 +258,7 @@ class HAWKES:
                         else:
                             gcomp[self.w_idx[i * self.B + j],:][k] = lamb[k] * w[i * self.B + j][k] *  (np.log(1 + np.exp(h[k])) \
                                 / (-f[i * self.B + j] * w[i * self.B + j][k]**2) + expit(h[k]) * expmdeltasdtt[i * self.B + j] / dh[k])
-            
-            # print("f", f)
+
             tmp = gcomp - np.sum(gllams, 1)
         elif self.m == 1:
             gcomp = np.vstack( \
@@ -391,24 +347,12 @@ class HAWKES:
                     self.dt_tt = (t - self.tt)[:,np.newaxis]
             else:
                 self.dt_tt = arg[0]
-            
-            # tmp =  mus * self.dt_tt[-1]
-            # for i in range(self.M):
-            #     for j in range(self.B):
-            #         for k in range(self.m - 1):
-            #             tmp += w[i * self.B + j] * (si.quad(lambda x: beta.pdf(x,self.beta_a[i][j],self.beta_b[i][j], scale = self.T_phi), \
-            #                 self.tt[np.newaxis, :self.m-1][0][k], self.tt[1:, np.newaxis][-1][0])[0]\
-            #                     - si.quad(lambda x: beta.pdf(x,self.beta_a[i][j],self.beta_b[i][j], scale = self.T_phi), \
-            #                 t - self.tt[k], t)[0])
-                        
             h1 = mus 
             dh1 = 0
             h2 = mus 
             dh2 = 0
             for i in range(self.M):
                 for j in range(self.B):
-                    # tmp += w[i * self.B + j] * si.quad(lambda x: beta.pdf(x,self.beta_a[i][j],self.beta_b[i][j], scale = self.T_phi), \
-                    #     self.tt[np.newaxis, :self.m-1][0][k], self.tt[1:, np.newaxis][-1][0])[0]
                     h1 += w[i * self.B + j] * np.sum(beta.pdf(self.dt_tt, a = self.beta_a[i][j], \
                             b = self.beta_b[i][j], scale = self.T_phi[i * self.B + j]))
                     dh1 += w[i * self.B + j] * np.sum(derivative(lambda x:beta.pdf(x, \
@@ -419,12 +363,7 @@ class HAWKES:
                     dh2 += w[i * self.B + j] * np.sum(derivative(lambda x:beta.pdf(x, \
                             a = self.beta_a[i][j],b = self.beta_b[i][j], scale = self.T_phi[i * self.B + j]), \
                             x0=self.dtm_tt, dx = 0.1, n=1))
-            # tmp = np.zeros(h.size)
-            # for i in range(h.size):
-            #     if h[i] > 20:
-            #         tmp[i] = lamb[i] * h[i]/dh[i]
-            #     else:
-            #         tmp[i] = lamb[i] * np.log(1 + np.exp(h[i])) / dh[i]
+
 
             tmp1 = np.zeros(h1.size)
             tmp2 = np.zeros(h2.size)
@@ -476,7 +415,6 @@ class HAWKES:
                     tt = self.tt
                     tt = np.insert(tt,-1,r0)
                     dtt = np.tril( tt[1:, np.newaxis] - tt[np.newaxis, :self.m-1] )
-                    # print("tmp_before", r0)
                     u = 0
                     for i in range(self.M):
                         for j in range(self.B):
@@ -509,15 +447,10 @@ class HAWKES:
                         intensity_t = lamb * expit(h)
                         ww+=1
 
-
                     tmp[m] =  np.min( np.vstack( (r0 , S2[m]) ), 0 )
                     m += 1
         else:
             tmp = S2
-        # print("lamb",lamb)
-        # print("tmp", tmp)
-        tmp1 = tmp
-        # tmp = np.minimum(tmp1, 1)
         return tmp if nSamples > 1 else tmp.squeeze()
 
     
@@ -570,8 +503,6 @@ class SVCPDIn:
                     except Exception as e:
                         Q[:,i_] = 1
                         print("奇异矩阵")
-                    # eigenvalue = np.linalg.eig(HJ)
-                    # print(eigenvalue[0])
                 
             self.particles += self.stepsize * Q
             nanidx = np.where(np.isnan(self.particles).any(0))[0]
@@ -587,8 +518,6 @@ class SVCPDIn:
             else:
                 self.stepsize *= 0.9
             maxshiftold = maxshift
-            # print("type(self.particles)", type(self.particles))
-            # print(self.particles.size, len(self.particles))
                           
     def resetParticles(self, idx):
         lenidx = len(idx) if isinstance(idx, int) == 0 else 1
@@ -617,10 +546,6 @@ class SVOCPDIn:
         # Setup credible interval
         self.flag_lci = 1      # Test left tail -> fire up drastic drecrease
         self.flag_rci = 1      # Test right tail -> fire up drastic increase
-        # self.risk_level_l = 1       # Left percentage of probability risk_WannaCry     
-        # self.risk_level_r = 10   # Right percentage of probability risk_WannaCry 
-        # self.risk_level_l = 2       # Left percentage of probability risk_beta3     
-        # self.risk_level_r = 2      # Right percentage of probability risk_beta3
         self.risk_level_l = 4      # Left percentage of probability risk_H2     
         self.risk_level_r = 1      # Right percentage of probability risk_H2
         self.pred_mean = np.zeros(self.nData)                         # Predictive mean
@@ -628,8 +553,6 @@ class SVOCPDIn:
         if self.flag_rci: self.percentile_r = np.zeros(self.nData)    # Right percentile (if flagged up)
                     
         # Changepoint prior
-        # self.rlr = 50              # Run length rate hyper-parameter -> decrease to weigh changepoint prob more_WannaCry 
-        # self.rlr = 100             # Run length rate hyper-parameter -> decrease to weigh changepoint prob more_beta3
         self.rlr = 700              # Run length rate hyper-parameter -> decrease to weigh changepoint prob more_H2
         self.H   = 1 / self.rlr     # Hazard rate
         
@@ -654,8 +577,6 @@ class SVOCPDIn:
         self.ptp[0]  /= np.sum( self.ptp[0] )
         
         # Risk tolerance
-        # self.riskTol = 8e-2 # WannaCry 
-        # self.riskTol = 4e-2 # beta3
         self.riskTol = 10e-2 # bH2
         
         # Initialize changepoints
@@ -667,31 +588,25 @@ class SVOCPDIn:
             
             # Sample from posterior run length
             self.getRunLengthSamples(t_)    
-            # print("getRunLengthSamples")  
             
             # Update models and samplers
             self.data2t = self.data[:t_]
             self.updateInferenceModels(t_)
-            # print("updateInferenceModels")
             
             # Get predictive samples
             self.getPredictiveSamples(t_)
-            # print("getPredictiveSamples")
             
             # Get predictive statistics
             self.getPredictiveStats(t_)
-            # print("getPredictiveStats")
             
             # Observe new data point
             datat = self.data[t_]
             
             # Check whether changepoint            
             self.checkIfChangepoint(t_, datat)
-            # print("checkIfChangepoint")
             
             # Get run length posterior           
             self.getRunLengthProbability(t_, datat)
-            # print("getRunLengthProbability")
         
     def getRunLengthSamples(self, t_):
         if t_ != 0:
@@ -709,7 +624,6 @@ class SVOCPDIn:
                     self.model[r_] = results[r_-1][0]
                     self.svn[r_]   = results[r_-1][1]
                     self.pts[r_]   = self.svn[r_].particles
-                    # print("self.pts[r_]", self.pts[r_].size)
                     q = - self.model[r_].getMinusLogPosterior( self.pts[r_] )
                     if np.max(q) > 50:
                         max_index = np.unravel_index(np.argmax(q), q.shape)
@@ -718,9 +632,6 @@ class SVOCPDIn:
                         i = -2
                         max_plp = 1
                         num = 1
-                    # print("sorted(set(q)).size",len(sorted(set(q))))
-                    # print("sorted(set(q))[-1]",sorted(set(q))[-1])
-                    # print("sorted(set(q))[i]",sorted(set(q))[i])
                         if sorted(q)[-100] != sorted(q)[-1]:
                             if sorted(q)[-2] == sorted(q)[-1]:
                                 q_list = q.tolist()
@@ -736,17 +647,13 @@ class SVOCPDIn:
                         else:
                             self.ptp[r_] =[1/q.size] * q.size
                         
-                    #     print("sorted(set(q))[",i,"]",sorted(set(q))[i])
-                    # print("self.ptp[r_][max_index[0]]",self.ptp[r_][max_index[0]])
                 else:
                     self.ptp[r_] = np.exp( - self.model[r_].getMinusLogPosterior( self.pts[r_] ) )
-                    # print("self.ptp[",r_,"]_before",self.ptp[r_])
                     if any(self.ptp[r_] != 0):
                         self.ptp[r_]  /= np.sum( self.ptp[r_] )
                     else:
                         self.ptp[r_] = [1/q.size] * q.size
 
-            # print("self.ptp[",r_,"]", self.ptp[r_])
                 
     def updateInferenceModels2Pool(self, r_):
         if r_ < self.trmax - 1:
@@ -755,33 +662,23 @@ class SVOCPDIn:
             model = HAWKES(self.data2t[-r_:], 0)
         svn = SVCPDIn(model, self.pts[r_-1])
         svn.apply()
-        # print("updateInferenceModels2Pool")
         return (model, svn)
     
     def getPredictiveSamples(self, t_):
         self.pps = np.array([])     
        
         r_vals, r_counts = np.unique(self.rls, return_counts = 1) 
-        # print("r_vals",r_vals)
         for k_ in range( len(r_vals) ): # PARALLELIZABLE!
             r_val = r_vals[k_]
             r_count = r_counts[k_]
-            # print("t_",t_)
-            # print("k_",k_)
-            # print("r_val",r_val)
             
             ptd = stats.rv_discrete( values = ( np.arange(self.npts), self.ptp[r_val] ) )
             thetas = self.pts[r_val][:,ptd.rvs(size = r_count)] 
-            # print("thetasgetPredictiveSamples")
             if t_ == 0:
                 tmp = self.model[r_val].simulateNewEvent(thetas)
-                # print("thetasgetPredictiveSamples1")
             else:
                 tmp = self.data[t_-1] + self.model[r_val].simulateNewEvent(thetas)
-                # print("thetasgetPredictiveSamples2")
             self.pps = np.hstack( ( self.pps, tmp ) )
-            # print("tmp", self.model[r_val].simulateNewEvent(thetas))
-        # print(self.pps)
                
     def getPredictiveStats(self, t_):   
         self.pred_mean[t_] = np.mean(self.pps)
@@ -793,12 +690,9 @@ class SVOCPDIn:
             
     def getRunLengthProbability(self, t_, datat):   
         pp0 = np.mean( stats.expon.pdf(datat, scale = np.exp( - self.pts[0][0,:] ) ) )
-        # print(pp0)
         pp = np.hstack( (pp0, np.zeros( min(t_, self.rmax-1) )) )
         for r_ in range(1, min(t_, self.rmax)): # PARALLELIZABLE!
             pp[r_] = np.mean( np.exp( - self.model[r_].getPredMinusLogLikelihood( self.pts[r_], datat ) ) )
-            # print(- self.model[r_].getPredMinusLogLikelihood( self.pts[r_], datat ) )
-            # print("self.pts",self.pts[r_].size)
         if  t_ < self.rmax-1:
             if len(pp)==1:
                 log_predictpp = np.maximum(-100, np.log(pp[-1]))
@@ -809,10 +703,8 @@ class SVOCPDIn:
         else:
             log_predictpp = np.maximum(-100, np.log(pp[-1]))
             self.predictprob.append(log_predictpp)
-        # print(self.predictprob)
         pp1= np.maximum (pp, 1e-8)
         log_pp = np.log(pp1)  
-        # print("pp", pp1)
  
         # Calculate run length posterior
         log_jppp = self.log_jp + log_pp                               # Joint x predictive prob
@@ -822,17 +714,7 @@ class SVOCPDIn:
         log_rlp = new_log_jp                                          # Run length posterior
         log_rlp -= logsumexp(new_log_jp)
         self.rlp = np.exp(log_rlp)
-        # self.jp = np.exp(self.log_jp)
         self.log_jp = new_log_jp                                      # pass message
-        # print(log_cp, self.rlp, self.log_jp)
-
-
-        # jppp = self.jp * pp                            # Joint x predictive prob
-        # gp = jppp * ( 1 - self.H )                     # Growth prob
-        # cp = np.sum( jppp * self.H )                   # Changepoint prob
-        # self.jp  = np.hstack( (cp, gp) )[:self.rmax]   # Joint prob
-        # ep = np.sum( self.jp )                         # Evidence prob
-        # self.rlp = self.jp / ep                        # Run length posterior
 
                 
     def checkIfChangepoint(self, t_, datat):
