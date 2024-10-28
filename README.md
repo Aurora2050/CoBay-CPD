@@ -6,7 +6,7 @@ For a detailed understanding of the model and method, please refer to the paper.
 
 ## Environment Setup
 
-The environment can be set up similarly to the `cpd_environment` configuration file. 
+The environment can be set up similarly to the `cpd_environment.yml` configuration file. 
 
 **Note:** The implementation of Pólya-Gamma sampling depends on the [PyPólyaGamma package](https://github.com/slinderman/pypolyagamma).
 
